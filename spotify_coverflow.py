@@ -9,14 +9,14 @@ from tkinter import Tk, Frame, Label
 
 from pprint import pprint
 
-MONITOR_WIDTH = 2560
-MONITOR_HEIGHT = 1440
+MONITOR_WIDTH = 1280
+MONITOR_HEIGHT = 1024
 
-USERNAME = ""
-SECRET = ""
-SCOPE = ""
+USERNAME = "1166791506"
+SECRET = "ef12bafe03d740df961f483d0562ed72"
+SCOPE = "user-read-playback-state"
 URI = "http://localhost:8888/callback"
-ID = ""
+ID = "733f26df73dd4c4e83805e931be8f96b"
 
 
 def get_token():
@@ -55,20 +55,23 @@ def get_current_playing(token):
     }
 
 
-def itunes_search(song, artist):
+def itunes_search(album, artist):
     '''
     Check if iTunes has a higher definition album cover and
     return the url if found
     '''
 
     try:
-        matches = itunespy.search_track(song)
+        matches = itunespy.search_album(album)
     except LookupError:
         return None
 
     for match in matches:
-        if match.artist_name == artist:
-            return match.artwork_url_100.replace('100x100b', '5000x5000b')
+        if artist in match.artist_name:
+            if album in match.collection_name:
+                return match.artwork_url_100.replace('100x100b', '1024x1024b')
+        
+        
 
 
 def convert_image(src):
@@ -78,7 +81,7 @@ def convert_image(src):
 
     res = requests.get(src)
     img = Image.open(BytesIO(res.content)).resize(
-        (1300, 1300), Image.ANTIALIAS)
+        (1024, 1024), Image.ANTIALIAS)
     pi = ImageTk.PhotoImage(img, size=())
 
     return pi
@@ -105,7 +108,7 @@ def main(token):
         time.sleep(5)
         current_song = get_current_playing(token)
 
-        if current_song["name"] != most_recent_song:
+        if current_song["album"] != most_recent_song:
             redraw = True
         else:
             redraw = False
@@ -113,16 +116,19 @@ def main(token):
         if redraw:
             artist = current_song["artist"]
             name = current_song["name"]
-            most_recent_song = name
+            album = current_song["album"]
+            most_recent_song = album
             hd_img = itunes_search(
-                current_song["name"], current_song["artist"])
+                current_song["album"], current_song["artist"])
 
             if hd_img != None:
                 pi = convert_image(hd_img)
+                itunes_cover = "iTunes Cover"
             else:
                 pi = convert_image(current_song["img_src"])
+                itunes_cover = ""
 
-            img_x = MONITOR_WIDTH / 3
+            img_x = MONITOR_WIDTH / 2
             img_y = MONITOR_HEIGHT / 2
 
             label = Label(f, image=pi, highlightthickness=0, bd=0)
@@ -133,7 +139,7 @@ def main(token):
                 text=artist,
                 bg="black",
                 fg="white",
-                font=("Courier New", 30)
+                font=("Courier New", 10)
             )
 
             artist_x = MONITOR_WIDTH - (MONITOR_WIDTH / 5)
@@ -142,10 +148,10 @@ def main(token):
 
             song_label = Label(
                 f,
-                text=name,
+                text=name + "\n \n " + album + "\n \n "+ itunes_cover,
                 bg="black",
                 fg="white",
-                font=("Courier New", 50),
+                font=("Courier New", 10),
             )
 
             song_x = MONITOR_WIDTH - (MONITOR_WIDTH / 5)
@@ -156,7 +162,7 @@ def main(token):
 
             label.destroy()
             artist_label.destroy()
-            song_label.destroy()
+            song_label.destroy()      
 
 
 if __name__ == "__main__":
